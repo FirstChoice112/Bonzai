@@ -1,0 +1,87 @@
+org: johan1
+service: BonzaiAPI
+
+frameworkVersion: "4"
+
+stages:
+  default:
+    params:
+      tableName: "users-table-${sls:stage}"
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [BookingTable, Arn]
+            - Fn::GetAtt: [RoomsTable, Arn]
+  environment:
+    BOOKING_TABLE: ${param:BookingTable}
+    ROOMS_TABLE: ${param:RoomsTable}
+
+package:
+  individually: true
+
+functions:
+  api:
+    handler: handler.handler
+    events:
+      - httpApi: "*"
+
+resources:
+  Resources:
+    BookingTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${param:BookingTable}
+        AttributeDefinitions:
+          - AttributeName: bookingId
+            AttributeType: S
+          - AttributeName: mail
+            AttributeType: S
+          - AttributeName: name
+            AttributeType: S
+          - AttributeName: inDate
+            AttributeType: S
+          - AttributeName: outDate
+            AttributeType: S
+          - AttributeName: totalGuests
+            AttributeType: N
+          - AttributeName: totalCost
+            AttributeType: N
+          - AttributeName: bookedRoom
+            AttributeType: SS
+        KeySchema:
+          - AttributeName: bookingId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    RoomsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${param:RoomsTable}
+        AttributeDefinitions:
+          - AttributeName: roomId
+            AttributeType: S
+          - AttributeName: roomType
+            AttributeType: S
+          - AttributeName: price
+            AttributeType: N
+          - AttributeName: maxPerRoom
+            AttributeType: N
+          - AttributeName: isAvailable
+            AttributeType: BOOL
+        KeySchema:
+          - AttributeName: roomId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
