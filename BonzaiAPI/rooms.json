@@ -1,224 +1,224 @@
 {
-    "RoomsTable": [
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "1" },
-            "roomType": { "S": "single" },
-            "maxPerRoom": { "N": "1" },
-            "price": { "N": "500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+  "RoomsTable": [
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "1" },
+          "roomType": { "S": "single" },
+          "maxPerRoom": { "N": "1" },
+          "price": { "N": "500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "2" },
-            "roomType": { "S": "single" },
-            "maxPerRoom": { "N": "1" },
-            "price": { "N": "500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "2" },
+          "roomType": { "S": "single" },
+          "maxPerRoom": { "N": "1" },
+          "price": { "N": "500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "3" },
-            "roomType": { "S": "single" },
-            "maxPerRoom": { "N": "1" },
-            "price": { "N": "500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "3" },
+          "roomType": { "S": "single" },
+          "maxPerRoom": { "N": "1" },
+          "price": { "N": "500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "4" },
-            "roomType": { "S": "single" },
-            "maxPerRoom": { "N": "1" },
-            "price": { "N": "500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "4" },
+          "roomType": { "S": "single" },
+          "maxPerRoom": { "N": "1" },
+          "price": { "N": "500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "5" },
-            "roomType": { "S": "single" },
-            "maxPerRoom": { "N": "1" },
-            "price": { "N": "500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "5" },
+          "roomType": { "S": "single" },
+          "maxPerRoom": { "N": "1" },
+          "price": { "N": "500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "6" },
-            "roomType": { "S": "single" },
-            "maxPerRoom": { "N": "1" },
-            "price": { "N": "500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "6" },
+          "roomType": { "S": "single" },
+          "maxPerRoom": { "N": "1" },
+          "price": { "N": "500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "7" },
-            "roomType": { "S": "single" },
-            "maxPerRoom": { "N": "1" },
-            "price": { "N": "500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "7" },
+          "roomType": { "S": "single" },
+          "maxPerRoom": { "N": "1" },
+          "price": { "N": "500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "8" },
-            "roomType": { "S": "single" },
-            "maxPerRoom": { "N": "1" },
-            "price": { "N": "500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "8" },
+          "roomType": { "S": "single" },
+          "maxPerRoom": { "N": "1" },
+          "price": { "N": "500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "9" },
-            "roomType": { "S": "double" },
-            "maxPerRoom": { "N": "2" },
-            "price": { "N": "1000" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "9" },
+          "roomType": { "S": "double" },
+          "maxPerRoom": { "N": "2" },
+          "price": { "N": "1000" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "10" },
-            "roomType": { "S": "double" },
-            "maxPerRoom": { "N": "2" },
-            "price": { "N": "1000" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "10" },
+          "roomType": { "S": "double" },
+          "maxPerRoom": { "N": "2" },
+          "price": { "N": "1000" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "11" },
-            "roomType": { "S": "double" },
-            "maxPerRoom": { "N": "2" },
-            "price": { "N": "1000" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "11" },
+          "roomType": { "S": "double" },
+          "maxPerRoom": { "N": "2" },
+          "price": { "N": "1000" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "12" },
-            "roomType": { "S": "double" },
-            "maxPerRoom": { "N": "2" },
-            "price": { "N": "1000" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "12" },
+          "roomType": { "S": "double" },
+          "maxPerRoom": { "N": "2" },
+          "price": { "N": "1000" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "13" },
-            "roomType": { "S": "double" },
-            "maxPerRoom": { "N": "2" },
-            "price": { "N": "1000" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "13" },
+          "roomType": { "S": "double" },
+          "maxPerRoom": { "N": "2" },
+          "price": { "N": "1000" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "14" },
-            "roomType": { "S": "double" },
-            "maxPerRoom": { "N": "2" },
-            "price": { "N": "1000" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "14" },
+          "roomType": { "S": "double" },
+          "maxPerRoom": { "N": "2" },
+          "price": { "N": "1000" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "15" },
-            "roomType": { "S": "suite" },
-            "maxPerRoom": { "N": "3" },
-            "price": { "N": "1500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "15" },
+          "roomType": { "S": "suite" },
+          "maxPerRoom": { "N": "3" },
+          "price": { "N": "1500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "16" },
-            "roomType": { "S": "suite" },
-            "maxPerRoom": { "N": "3" },
-            "price": { "N": "1500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "16" },
+          "roomType": { "S": "suite" },
+          "maxPerRoom": { "N": "3" },
+          "price": { "N": "1500" },
+          "isAvailable": { "BOOL": true }
         }
-      },
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "17" },
-            "roomType": { "S": "suite" },
-            "maxPerRoom": { "N": "3" },
-            "price": { "N": "1500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "17" },
+          "roomType": { "S": "suite" },
+          "maxPerRoom": { "N": "3" },
+          "price": { "N": "1500" },
+          "isAvailable": { "BOOL": true }
         }
-      }, 
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "18" },
-            "roomType": { "S": "suite" },
-            "maxPerRoom": { "N": "3" },
-            "price": { "N": "1500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "18" },
+          "roomType": { "S": "suite" },
+          "maxPerRoom": { "N": "3" },
+          "price": { "N": "1500" },
+          "isAvailable": { "BOOL": true }
         }
-      }, 
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "19" },
-            "roomType": { "S": "suite" },
-            "maxPerRoom": { "N": "3" },
-            "price": { "N": "1500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "19" },
+          "roomType": { "S": "suite" },
+          "maxPerRoom": { "N": "3" },
+          "price": { "N": "1500" },
+          "isAvailable": { "BOOL": true }
         }
-      }, 
-      {
-        "PutRequest": {
-          "Item": {
-            "roomId": { "S": "20" },
-            "roomType": { "S": "suite" },
-            "maxPerRoom": { "N": "3" },
-            "price": { "N": "1500" },
-            "isAvailable": {"BOOL": "true"}
-          }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "roomId": { "S": "20" },
+          "roomType": { "S": "suite" },
+          "maxPerRoom": { "N": "3" },
+          "price": { "N": "1500" },
+          "isAvailable": { "BOOL": true }
         }
-      }      
-    ]
-  }
+      }
+    }
+  ]
+}
