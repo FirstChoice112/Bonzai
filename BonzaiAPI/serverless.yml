@@ -1,16 +1,13 @@
 org: johan1
+app: BonzaiAPIApp
 service: BonzaiAPI
 
 frameworkVersion: "4"
 
-stages:
-  default:
-    params:
-      tableName: "users-table-${sls:stage}"
-
 provider:
   name: aws
   runtime: nodejs20.x
+  region: eu-north-1
   iam:
     role:
       statements:
@@ -26,8 +23,13 @@ provider:
             - Fn::GetAtt: [BookingTable, Arn]
             - Fn::GetAtt: [RoomsTable, Arn]
   environment:
-    BOOKING_TABLE: ${param:BookingTable}
-    ROOMS_TABLE: ${param:RoomsTable}
+    BOOKING_TABLE: ${self:custom.tables.BookingTable}
+    ROOMS_TABLE: ${self:custom.tables.RoomsTable}
+
+custom:
+  tables:
+    BookingTable: "BookingTable-${sls:stage}"
+    RoomsTable: "RoomsTable-${sls:stage}"
 
 package:
   individually: true
@@ -36,31 +38,19 @@ functions:
   api:
     handler: handler.handler
     events:
-      - httpApi: "*"
+      - httpApi:
+          path: /all
+          method: GET
 
 resources:
   Resources:
     BookingTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${param:BookingTable}
+        TableName: ${self:custom.tables.BookingTable}
         AttributeDefinitions:
           - AttributeName: bookingId
             AttributeType: S
-          - AttributeName: mail
-            AttributeType: S
-          - AttributeName: name
-            AttributeType: S
-          - AttributeName: inDate
-            AttributeType: S
-          - AttributeName: outDate
-            AttributeType: S
-          - AttributeName: totalGuests
-            AttributeType: N
-          - AttributeName: totalCost
-            AttributeType: N
-          - AttributeName: bookedRoom
-            AttributeType: SS
         KeySchema:
           - AttributeName: bookingId
             KeyType: HASH
@@ -69,18 +59,10 @@ resources:
     RoomsTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${param:RoomsTable}
+        TableName: ${self:custom.tables.RoomsTable}
         AttributeDefinitions:
           - AttributeName: roomId
             AttributeType: S
-          - AttributeName: roomType
-            AttributeType: S
-          - AttributeName: price
-            AttributeType: N
-          - AttributeName: maxPerRoom
-            AttributeType: N
-          - AttributeName: isAvailable
-            AttributeType: BOOL
         KeySchema:
           - AttributeName: roomId
             KeyType: HASH

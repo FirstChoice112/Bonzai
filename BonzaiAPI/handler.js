@@ -3,6 +3,10 @@ const {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+  QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 
 const express = require("express");
@@ -11,14 +15,20 @@ const serverless = require("serverless-http");
 const app = express();
 
 const USERS_TABLE = process.env.USERS_TABLE;
-if (!USERS_TABLE) throw new Error("Environment variable USERS_TABLE must be defined");
+if (!USERS_TABLE)
+  throw new Error("Environment variable USERS_TABLE must be defined");
 
 const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);
 
 app.use(express.json());
 
-const handleError = (res, error, statusCode = 500, message = "Internal Server Error") => {
+const handleError = (
+  res,
+  error,
+  statusCode = 500,
+  message = "Internal Server Error"
+) => {
   console.error(error);
   res.status(statusCode).json({ error: message });
 };
@@ -34,7 +44,10 @@ app.get("/users/:userId", async (req, res) => {
     const command = new GetCommand(params);
     const { Item } = await docClient.send(command);
 
-    if (!Item) return res.status(404).json({ error: `User with ID "${userId}" not found` });
+    if (!Item)
+      return res
+        .status(404)
+        .json({ error: `User with ID "${userId}" not found` });
 
     const { name } = Item;
     res.json({ userId, name });
@@ -46,8 +59,10 @@ app.get("/users/:userId", async (req, res) => {
 app.post("/users", async (req, res) => {
   const { userId, name } = req.body;
 
-  if (typeof userId !== "string") return res.status(400).json({ error: '"userId" must be a string' });
-  if (typeof name !== "string") return res.status(400).json({ error: '"name" must be a string' });
+  if (typeof userId !== "string")
+    return res.status(400).json({ error: '"userId" must be a string' });
+  if (typeof name !== "string")
+    return res.status(400).json({ error: '"name" must be a string' });
 
   const params = {
     TableName: USERS_TABLE,
