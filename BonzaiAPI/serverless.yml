@@ -1,4 +1,5 @@
-org: johan1
+org: horseinc
+app: BonzaiAPIApp
 service: BonzaiAPI
 
 frameworkVersion: "4"
@@ -6,6 +7,7 @@ frameworkVersion: "4"
 provider:
   name: aws
   runtime: nodejs20.x
+  region: eu-north-1
   iam:
     role:
       statements:
@@ -36,8 +38,9 @@ functions:
   api:
     handler: handler.handler
     events:
-      - httpApi: /all
-        method: GET
+      - httpApi: 
+          path: /all
+          method: GET
 
 resources:
   Resources:
@@ -48,20 +51,6 @@ resources:
         AttributeDefinitions:
           - AttributeName: bookingId
             AttributeType: S
-          - AttributeName: mail
-            AttributeType: S
-          - AttributeName: name
-            AttributeType: S
-          - AttributeName: inDate
-            AttributeType: S
-          - AttributeName: outDate
-            AttributeType: S
-          - AttributeName: totalGuests
-            AttributeType: N
-          - AttributeName: totalCost
-            AttributeType: N
-          - AttributeName: bookedRoom
-            AttributeType: SS
         KeySchema:
           - AttributeName: bookingId
             KeyType: HASH
@@ -74,14 +63,6 @@ resources:
         AttributeDefinitions:
           - AttributeName: roomId
             AttributeType: S
-          - AttributeName: roomType
-            AttributeType: S
-          - AttributeName: price
-            AttributeType: N
-          - AttributeName: maxPerRoom
-            AttributeType: N
-          - AttributeName: isAvailable
-            AttributeType: BOOL
         KeySchema:
           - AttributeName: roomId
             KeyType: HASH
