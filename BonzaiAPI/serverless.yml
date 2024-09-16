@@ -36,7 +36,8 @@ functions:
   api:
     handler: handler.handler
     events:
-      - httpApi: "*"
+      - httpApi: /all
+        method: GET
 
 resources:
   Resources:
