@@ -4,6 +4,9 @@ const {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  UpdateCommand,
+  ScanCommand,
+  DeleteCommand
 } = require("@aws-sdk/lib-dynamodb");
 
 const express = require("express");
@@ -14,7 +17,6 @@ const app = express();
 const crypto = require("crypto");
 //let uuid = crypto.randomUUID();
 
-const USERS_TABLE = process.env.USERS_TABLE;
 const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);
 

@@ -1,6 +1,6 @@
 org: horseinc
-app: BonzaiAPIApp
-service: BonzaiAPI
+app: bonzai-api-app
+service: bonzaiAPI
 
 frameworkVersion: "4"
 
