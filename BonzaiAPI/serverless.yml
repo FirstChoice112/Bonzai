@@ -1,6 +1,6 @@
-org: linnjoha
-app: bonzaiapiapp
-service: bonzaiapi
+org: horseinc
+app: bonzai-api-app
+service: bonzaiAPI
 
 frameworkVersion: "4"
 
