@@ -39,8 +39,8 @@ functions:
     handler: handler.handler
     events:
       - httpApi:
-          path: /all
-          method: GET
+          path: /bookroom
+          method: POST
 
 resources:
   Resources:
