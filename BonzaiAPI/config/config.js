@@ -12,4 +12,13 @@ const {
 const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);
 
-module.exports = { client, docClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand, QueryCommand };
+module.exports = {
+  client,
+  docClient,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+  QueryCommand,
+};
