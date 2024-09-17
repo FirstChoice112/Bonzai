@@ -1,6 +1,6 @@
-org: horseinc
-app: bonzai-api-app
-service: bonzaiAPI
+org: linnjoha
+app: bonzaiapiapp
+service: bonzaiapi
 
 frameworkVersion: "4"
 
@@ -38,7 +38,7 @@ functions:
   api:
     handler: handler.handler
     events:
-      - httpApi: 
+      - httpApi:
           path: /all
           method: GET
 
@@ -51,11 +51,21 @@ resources:
         AttributeDefinitions:
           - AttributeName: bookingId
             AttributeType: S
+          - AttributeName: inDate
+            AttributeType: S
         KeySchema:
           - AttributeName: bookingId
             KeyType: HASH
+          - AttributeName: inDate
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
-
+        GlobalSecondaryIndexes:
+          - IndexName: inDateIndex
+            KeySchema:
+              - AttributeName: inDate
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
     RoomsTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -63,7 +73,18 @@ resources:
         AttributeDefinitions:
           - AttributeName: roomId
             AttributeType: S
+          - AttributeName: availableStatus # Change from isAvailable (BOOL) to String (S)
+            AttributeType: S
         KeySchema:
           - AttributeName: roomId
             KeyType: HASH
+          - AttributeName: availableStatus # Change this key to match the new String attribute
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: availableStatusIndex # New GSI to track room availability
+            KeySchema:
+              - AttributeName: availableStatus
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
