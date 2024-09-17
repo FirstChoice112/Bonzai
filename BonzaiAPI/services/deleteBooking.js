@@ -1,1 +1,1 @@
-const { client, docClient } = require("../config/config.js");
+const { client, docClient } = require("./config/config.js");
