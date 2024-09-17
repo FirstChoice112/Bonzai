@@ -6,35 +6,35 @@ const {
 } = require("../config/config");
 
 const bookRooms = async (bookningDetails) => {
-  const { bookingId, name, email, inDate, outDate, totalGuests, rooms } =
-    bookningDetails;
-
-  const command = new QueryCommand({
-    TableName: process.env.ROOMS_TABLE,
-    IndexName: "availableStatusIndex",
-    KeyConditionExpression: "#status = :value",
-    ExpressionAttributeNames: {
-      "#status": "availableStatus",
-    },
-    ExpressionAttributeValues: {
-      ":value": "true",
-    },
-  });
-
-  console.log(command);
-
   try {
+    const { bookingId, name, email, inDate, outDate, totalGuests, rooms } = bookningDetails;
+
+    const command = new QueryCommand({
+      TableName: process.env.ROOMS_TABLE,
+      IndexName: "availableStatusIndex",
+      KeyConditionExpression: "#status = :value",
+      ExpressionAttributeNames: {
+        "#status": "availableStatus",
+      },
+      ExpressionAttributeValues: {
+        ":value": "false",
+      },
+    });
+
+    console.log("COMMAND", command);
+
     const availableRooms = await docClient.send(command);
+    console.log("AVAILABLEROOMS", availableRooms);
 
     if (availableRooms.Count === 0) {
       return { success: false, message: "No rooms available" };
     }
 
-    console.log(availableRooms);
+    return { success: true, message: "Booking stored successfully", results };
 
-    return { success: true, message: "Booking stored successfully", result };
   } catch (error) {
-    throw new Error("Error storing booking details");
+    console.error("ERROR", error);
+    return { success: "ERROR", message: "ERROR",}
   }
 };
 

@@ -22,6 +22,10 @@ provider:
           Resource:
             - Fn::GetAtt: [BookingTable, Arn]
             - Fn::GetAtt: [RoomsTable, Arn]
+            - Fn::Join:
+              - ""
+              - - Fn::GetAtt: [RoomsTable, Arn]
+                - /index/availableStatusIndex
   environment:
     BOOKING_TABLE: ${self:custom.tables.BookingTable}
     ROOMS_TABLE: ${self:custom.tables.RoomsTable}

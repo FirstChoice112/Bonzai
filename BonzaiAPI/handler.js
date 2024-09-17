@@ -79,11 +79,21 @@ app.post("/bookroom", async (req, res) => {
       rooms,
     };
 
-    const response = bookRooms(placeholder);
+    const response = await bookRooms(placeholder);
 
     console.log("placeholder", placeholder);
-    console.log(response);
-  } catch (error) {}
+    console.log("RESPONSE", response);
+
+    if(!response.success){
+      res.status(400).json({ data: response, success: response.success });
+    }
+
+    res.status(200).json({ data: response });
+
+  } catch (error) {
+    console.error("ERROR", error);
+    res.status(500).json({ message: "Something is wrong" });
+  }
 });
 
 const checkValidDataType = (req) => {
@@ -136,7 +146,7 @@ app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 exports.handler = serverless(app);
 
 // postman postbooking
-//{
+// {
 //   "name": "John Doe",
 //   "email": "john.doe@example.com",
 //   "inDate": "2024-01-16",
