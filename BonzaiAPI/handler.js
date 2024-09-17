@@ -8,7 +8,8 @@ const {
   ScanCommand,
   QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
-
+const { validateDate } = require("./services/validateDate");
+const { bookRooms } = require("./services/bookRooms");
 const express = require("express");
 const serverless = require("serverless-http");
 
@@ -44,17 +45,18 @@ app.post("/bookroom", async (req, res) => {
   let uuid = crypto.randomUUID();
   try {
     const { name, email, inDate, outDate, totalGuests, rooms } = req.body;
+    const isValidInDate = validateDate(inDate);
+    const isValidOutDate = validateDate(outDate);
 
     console.log("reqbody", req.body);
-    // if (!name || !mail || !inDate || !outDate || !totalguests || !rooms) {
-    //   return res.status(400).json({ message: "All fields are required" });
-    // }
-
+    if (!isValidInDate || !isValidOutDate) {
+      return res.status(400).json({ message: "invalid dateformat" });
+    }
     const typeSpec = {
       name: "string",
       email: "string",
       inDate: "string",
-      outdate: "string",
+      outdate: "YYYY-MM-DD",
       totalGuests: "number",
       rooms: "array",
     };
@@ -67,27 +69,20 @@ app.post("/bookroom", async (req, res) => {
         .json({ message: "All fields are required", typeSpec });
     }
 
-    const newInDate = new Date(inDate);
-    const inDateString = newInDate.toLocaleDateString();
-    //const inDateString = newInDate.toISOString().split("T")[0];
-    console.log("inDatestring", inDateString);
-
-    const newOutDate = new Date(outDate);
-    console.log("outDate", newOutDate);
-    const outDateString = newOutDate.toLocaleDateString();
-    //const outDateString = newOutDate.toISOString().split("T")[0];
-    const avaiavblerooms = () => {};
     const placeholder = {
       bookingId: uuid,
       name,
       email,
-      inDate: inDateString, // format 2024-09-17
-      outDate: outDateString, // format 2024-09-17
+      inDate: inDate, // format 2024-09-17
+      outDate: outDate, // format 2024-09-17
       totalGuests, // Total guest
       rooms,
     };
 
+    const response = bookRooms(placeholder);
+
     console.log("placeholder", placeholder);
+    console.log(response);
   } catch (error) {}
 });
 

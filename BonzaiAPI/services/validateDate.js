@@ -1,7 +1,27 @@
-const validateDate = (stringdate) => {
+const validateDate = (stringDate) => {
   //let date1 = "01/16/2024"//true
   //let date2 = "not date string"/false
-  return !isNaN(Date.parse(stringdate));
+
+  // Format 1: "YYYY-MM-DD" (Y-year, M- month, D - date)
+
+  const regex = /^\d{4}-\d{2}-\d{2}$/; // "YYYY-MM-DD"
+
+  const validFormat = regex.test(stringDate);
+  if (!validFormat) {
+    return false;
+  }
+
+  const bookedDay = new Date(stringDate);
+  bookedDay.setHours(0, 0, 0, 0);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (bookedDay < today) {
+    return false;
+  }
+
+  return !isNaN(Date.parse(stringDate));
 };
 
 const checkDaysBetweenDates = (date1, date2) => {
