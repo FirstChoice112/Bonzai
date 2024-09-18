@@ -1,4 +1,6 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+
+// Set up your DynamoDB client
 const {
   DynamoDBDocumentClient,
   GetCommand,
@@ -8,15 +10,21 @@ const {
   ScanCommand,
   QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
+
+// Import your custom services
 const { validateDate } = require("./services/validateDate");
 const { bookRooms } = require("./services/bookRooms");
+const { validateRoomTypes } = require("./services/validateRooms");
 const express = require("express");
 const serverless = require("serverless-http");
 
 const app = express();
 
+// Initialize DynamoDB client and document client
 const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);
+
+// Middleware to generate a unique ID for each booking
 const crypto = require("crypto");
 
 app.use(express.json());
@@ -35,14 +43,13 @@ app.get("/all", async (req, res) => {
   res.status(400).json({ msg: "jag gillar hestar!" });
 });
 
-// POST route
-
 // @route       POST /bookroom
 // @desc        Book a room for a specified date range and guest details
 // @access      Public (or Private if authentication is required)
 
 app.post("/bookroom", async (req, res) => {
   let uuid = crypto.randomUUID();
+
   try {
     const { name, email, inDate, outDate, totalGuests, rooms } = req.body;
     const isValidInDate = validateDate(inDate);
@@ -50,8 +57,18 @@ app.post("/bookroom", async (req, res) => {
 
     console.log("reqbody", req.body);
     if (!isValidInDate || !isValidOutDate) {
-      return res.status(400).json({ message: "invalid dateformat" });
+      return res
+        .status(400)
+        .json({ message: "invalid dateformat, yyyy-mm-dd is required" });
     }
+
+    const isValidRoomTypes = validateRoomTypes(rooms);
+    if (!isValidRoomTypes) {
+      return res.status(400).json({
+        message: "Invalid room type. Choose Single, Double, or Suite.",
+      });
+    }
+
     const typeSpec = {
       name: "string",
       email: "string",
@@ -84,12 +101,15 @@ app.post("/bookroom", async (req, res) => {
     console.log("placeholder", placeholder);
     console.log("RESPONSE", response);
 
-    if(!response.success){
-      res.status(400).json({ data: response, success: response.success });
+    if (!response.success) {
+      res.status(400).json({
+        data: response,
+        success: response.success,
+        message: response.message,
+      });
     }
 
     res.status(200).json({ data: response });
-
   } catch (error) {
     console.error("ERROR", error);
     res.status(500).json({ message: "Something is wrong" });
@@ -116,44 +136,33 @@ const checkValidDataType = (req) => {
     return false;
   }
 
-  if (typeof inDate !== "string") {
-    console.log("indate smäller", typeof inDate);
-    return false;
-  }
-  if (typeof outDate !== "string") {
-    console.log("outdate smäller", typeof outDate);
-    return false;
-  }
   if (typeof totalGuests !== "number") {
     console.log("toalguest smäller", typeof totalGuests);
-    return false;
-  }
-
-  if (typeof rooms !== "object") {
-    console.log("rooms smäller", typeof rooms);
-    return false;
-  }
-
-  if (rooms.length === 0) {
-    console.log(rooms);
-    console.log("length", typeof rooms.length);
     return false;
   } else return true;
 };
 
+app.put("/update", async (req, res) => {
+  try {
+    const { roomId } = req.body;
+    const updateRoom = new UpdateCommand({
+      TableName: process.env.ROOMS_TABLE,
+      Key: {
+        roomId: roomId,
+      },
+      UpdateExpression: "set availableStatus = :availableStatus",
+      ExpressionAttributeValues: {
+        ":availableStatus": "false",
+      },
+      ReturnValues: "ALL_NEW",
+    });
+    return res.status(200).json({ msg: "UPDATE OK!" });
+  } catch (error) {
+    console.log("ERROR UPDATE IN HANDLER", error);
+    return res.status(500).json({ msg: "Nej, kan inte uppdatera" });
+  }
+});
+
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
 exports.handler = serverless(app);
-
-// postman postbooking
-// {
-//   "name": "John Doe",
-//   "email": "john.doe@example.com",
-//   "inDate": "2024-01-16",
-//   "outDate": "2024-01-20",
-//   "totalGuests": 2,
-//   "rooms": [
-//     { "roomType": "suite", "quantity": 1 },
-//     { "roomType": "single", "quantity": 1 }
-//   ]
-// }
