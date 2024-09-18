@@ -5,22 +5,24 @@ const {
   PutCommand,
   UpdateCommand,
 } = require("../config/config");
-const { validateRoomGuests } = require("./validateRooms");
+const { validateRoomGuests } = require("./validateServices");
 
-const bookRooms = async (bookningDetails) => {
+// Books rooms based on the provided booking details and availability of rooms
+const bookRooms = async (bookingDetails) => {
   try {
     const { bookingId, name, email, inDate, outDate, totalGuests, rooms } =
-      bookningDetails;
+      bookingDetails;
 
+    // Validate if the total guests fit the room capacity
     const isValidTotalGuests = validateRoomGuests(rooms, totalGuests);
     if (!isValidTotalGuests) {
       return {
         success: false,
-        message: "Ej tillräcklig kapacitet för alla gäster.",
+        message: "Insufficient capacity for all guests.",
       };
     }
 
-    //kollar så att det finns lediga rum
+    // Check if there are available rooms
     const command = new QueryCommand({
       TableName: process.env.ROOMS_TABLE,
       IndexName: "availableStatusIndex",
@@ -35,66 +37,61 @@ const bookRooms = async (bookningDetails) => {
 
     console.log("COMMAND", command);
 
-    //hämtar alla tillgängliga rum
+    // Fetch all available rooms
     const availableRooms = await docClient.send(command);
-    console.log("AVAILABLEROOMS", availableRooms);
+    console.log("AVAILABLE ROOMS", availableRooms);
 
-    let tilldeladerum = [];
+    let assignedRooms = [];
 
     rooms.forEach((room) => {
-      const foundedRoom = availableRooms.Items.find(
-        (foundroom) => foundroom.roomType == room
+      const foundRoom = availableRooms.Items.find(
+        (availableRoom) => availableRoom.roomType === room
       );
-      if (!foundedRoom) {
-        tilldeladerum.push(false);
+      if (!foundRoom) {
+        assignedRooms.push(false);
       }
-      console.log("foundedroom", foundedRoom);
-      tilldeladerum.push(foundedRoom);
+      console.log("FOUND ROOM", foundRoom);
+      assignedRooms.push(foundRoom);
     });
 
-    console.log("ROOMS", tilldeladerum);
+    console.log("ROOMS", assignedRooms);
 
-    if (tilldeladerum.includes(false)) {
+    // If one or more room selections are fully booked
+    if (assignedRooms.includes(false)) {
       return {
         success: false,
-        message: "ett eller flera av dina rumsval är fullbokade.",
+        message: "One or more of your room selections are fully booked.",
       };
     }
 
-    //roomId
-
-    //kör in den i en loop med som innehåller updateCommand
-
-    for (const room of tilldeladerum) {
+    // Process room updates to mark them as unavailable
+    for (const room of assignedRooms) {
       try {
         const idString = room.roomId.toString();
         console.log("PROCESSING ROOM", room);
 
-        const updateroomCommand = new UpdateCommand({
+        const updateRoomCommand = new UpdateCommand({
           TableName: process.env.ROOMS_TABLE,
-          Key: {
-            roomId: idString,
-          },
+          Key: { roomId: idString },
           UpdateExpression: "SET availableStatus = :availableStatus",
-          ExpressionAttributeValues: {
-            ":availableStatus": "false",
-          },
+          ExpressionAttributeValues: { ":availableStatus": "false" },
           ReturnValues: "ALL_NEW",
         });
 
-        const response = await docClient.send(updateroomCommand);
-        console.log("RESPONSEUPDATEROOM", response);
+        const response = await docClient.send(updateRoomCommand);
+        console.log("ROOM UPDATE RESPONSE", response);
       } catch (error) {
         console.log("UPDATE ERROR", error);
       }
     }
-    //räkna ut totalten
+
+    // Calculate the total cost of the rooms
     let totalCost = 0;
-    tilldeladerum.forEach((room) => {
+    assignedRooms.forEach((room) => {
       totalCost += room.price;
     });
 
-    //skapa putcomand till bookingtable
+    // Create a booking entry in the booking table
     const bookingCommand = new PutCommand({
       TableName: process.env.BOOKING_TABLE,
       Item: {
@@ -104,7 +101,7 @@ const bookRooms = async (bookningDetails) => {
         inDate: inDate,
         outDate: outDate,
         totalGuests: totalGuests,
-        rooms: tilldeladerum.map((room) => room.roomId),
+        rooms: assignedRooms.map((room) => room.roomId),
         totalCost: totalCost,
       },
     });
@@ -112,6 +109,7 @@ const bookRooms = async (bookningDetails) => {
     const bookingResponse = await docClient.send(bookingCommand);
     console.log("BOOKING RESPONSE", bookingResponse);
 
+    // Prepare and return the booking details
     const sendBookingData = {
       bookingId,
       name,
@@ -119,10 +117,10 @@ const bookRooms = async (bookningDetails) => {
       inDate,
       outDate,
       totalGuests,
-      rooms: tilldeladerum.map((room) => room.roomId),
+      rooms: assignedRooms.map((room) => room.roomId),
       price: totalCost,
     };
-    console.log("SENDBOOKINGDATA", sendBookingData);
+    console.log("SEND BOOKING DATA", sendBookingData);
     return {
       success: true,
       message: "Booking stored successfully",
@@ -130,77 +128,8 @@ const bookRooms = async (bookningDetails) => {
     };
   } catch (error) {
     console.error("ERROR", error);
-    return { success: "ERROR", message: "ERROR" };
+    return { success: false, message: "Error occurred during booking." };
   }
 };
 
 module.exports = { bookRooms };
-
-/* 
-
-Marcus
-
-const { docClient, QueryCommand, PutCommand, UpdateCommand } = require("../config/config");
-const { validateRoomGuests } = require("./validateRooms");
-
-const bookRooms = async (bookingDetails) => {
-  try {
-    const { bookingId, name, email, inDate, outDate, totalGuests, rooms } = bookingDetails;
-
-    if (!validateRoomGuests(rooms, totalGuests)) {
-      return { success: false, message: "Ej tillräcklig kapacitet för alla gäster." };
-    }
-
-    const availableRooms = await docClient.send(
-      new QueryCommand({
-        TableName: process.env.ROOMS_TABLE,
-        IndexName: "availableStatusIndex",
-        KeyConditionExpression: "#status = :value",
-        ExpressionAttributeNames: { "#status": "availableStatus" },
-        ExpressionAttributeValues: { ":value": "true" },
-      })
-    );
-
-    const assignedRooms = rooms.map((room) =>
-      availableRooms.Items.find((r) => r.roomType === room) || false
-    );
-
-    if (assignedRooms.includes(false)) {
-      return { success: false, message: "ett eller flera av dina rumsval är fullbokade." };
-    }
-
-    for (const room of assignedRooms) {
-      await docClient.send(
-        new UpdateCommand({
-          TableName: process.env.ROOMS_TABLE,
-          Key: { roomId: room.roomId.toString() },
-          UpdateExpression: "SET availableStatus = :availableStatus",
-          ExpressionAttributeValues: { ":availableStatus": "false" },
-        })
-      );
-    }
-
-    const totalCost = assignedRooms.reduce((sum, room) => sum + room.price, 0);
-
-    await docClient.send(
-      new PutCommand({
-        TableName: process.env.BOOKING_TABLE,
-        Item: { bookingId, name, email, inDate, outDate, totalGuests, rooms: assignedRooms.map((r) => r.roomId), totalCost },
-      })
-    );
-
-    return {
-      success: true,
-      message: "Booking stored successfully",
-      booking: { bookingId, name, email, inDate, outDate, totalGuests, rooms: assignedRooms.map((r) => r.roomId), price: totalCost },
-    };
-  } catch (error) {
-    console.error("ERROR", error);
-    return { success: "ERROR", message: "ERROR" };
-  }
-};
-
-module.exports = { bookRooms };
-
-
-*/

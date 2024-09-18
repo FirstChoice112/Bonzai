@@ -12,9 +12,15 @@ const {
 } = require("@aws-sdk/lib-dynamodb");
 
 // Import your custom services
-const { validateDate } = require("./services/validateDate");
+const {
+  validateDate,
+  validateRoomTypes,
+  checkBookingId,
+  checkValidUpdates,
+  checkValidDataType,
+} = require("./services/validateServices");
 const { bookRooms } = require("./services/bookRooms");
-const { validateRoomTypes } = require("./services/validateRooms");
+const { updateBooking } = require("./services/updateBooking");
 const express = require("express");
 const serverless = require("serverless-http");
 
@@ -116,53 +122,67 @@ app.post("/bookroom", async (req, res) => {
   }
 });
 
-const checkValidDataType = (req) => {
-  const { name, email, inDate, outDate, totalGuests, rooms } = req.body;
-
-  console.log(typeof name, typeof email, typeof inDate, typeof outDate);
-
-  if (!name || !email || !inDate || !outDate || !totalGuests || !rooms) {
-    console.log("reqbody");
-    return false;
-  }
-
-  if (typeof name !== "string") {
-    console.log("name smäller", typeof name);
-    return false;
-  }
-
-  if (typeof email !== "string") {
-    console.log("mail smäller", typeof email);
-    return false;
-  }
-
-  if (typeof totalGuests !== "number") {
-    console.log("toalguest smäller", typeof totalGuests);
-    return false;
-  } else return true;
-};
-
 app.put("/update", async (req, res) => {
   try {
-    const { roomId } = req.body;
-    const updateRoom = new UpdateCommand({
-      TableName: process.env.ROOMS_TABLE,
-      Key: {
-        roomId: roomId,
-      },
-      UpdateExpression: "set availableStatus = :availableStatus",
-      ExpressionAttributeValues: {
-        ":availableStatus": "false",
-      },
-      ReturnValues: "ALL_NEW",
-    });
+    const { bookingId, updates } = req.body;
+    const booking = await checkBookingId(bookingId);
+    if (!booking) {
+      return res.status(400).json({ message: "Booking could not be found" });
+    }
+    const validDataTypes = {
+      inDate: "YYYY-MM-DD",
+      outDate: "YYYY-MM-DD",
+      totalGuests: "number",
+      rooms: ["suite", "double", "single"],
+    };
+    const isValidUpdates = checkValidUpdates(updates);
+    if (!isValidUpdates) {
+      return res
+        .status(400)
+        .json({ message: "Invalid datatypes", validDataTypes });
+    }
+    const response = await updateBooking(booking, updates);
+
     return res.status(200).json({ msg: "UPDATE OK!" });
   } catch (error) {
     console.log("ERROR UPDATE IN HANDLER", error);
-    return res.status(500).json({ msg: "Nej, kan inte uppdatera" });
+    return res.status(500).json({ msg: "No, cannot update" });
   }
 });
 
 app.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
 exports.handler = serverless(app);
+
+/* 
+
+exports.handler = serverless(app);
+const checkValidUpdates = (updates) => {
+  const validKeys = ["rooms", "inDate", "outDate", "totalGuests"];
+  
+  // Check if all keys in updates are valid
+  for (const key of Object.keys(updates)) {
+    if (!validKeys.includes(key)) {
+      return false;
+    }
+  }
+
+  // Validation map
+  const validations = {
+    rooms: validateRoomTypes,
+    inDate: validateDate,
+    outDate: validateDate,
+    totalGuests: (val) => typeof val === "number",
+  };
+
+  // Iterate through each update and validate
+  for (const key of Object.keys(updates)) {
+    if (validations[key] && !validations[key](updates[key])) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+*/

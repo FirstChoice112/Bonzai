@@ -1,120 +1,118 @@
-//Marcus (ändra eller ta bort vad ni vill)
-
-// Import required AWS SDK commands for interacting with DynamoDB
 const {
-  DynamoDBDocumentClient,
+  docClient,
+  DeleteCommand,
+  GetCommand,
   UpdateCommand,
-} = require("@aws-sdk/lib-dynamodb");
+  QueryCommand,
+} = require("../config/config.js");
 
-// Import utility functions for validation (date and room types)
-const { validateDate } = require("./services/validateDate");
-const { validateRoomTypes } = require("./services/validateRooms");
+const { validateRoomTypes, validateRoomGuests } = require("./validateServices");
 
-// Import the client configuration for connecting to DynamoDB
-const { client } = require("../config/config.js");
+const updateBooking = async (booking, updates) => {
+  // Validate room types and guests
+  const inDate = updates.inDate;
+  const outDate = updates.outDate;
+  const totalGuests = updates.totalguests;
+  const rooms = updates.rooms;
 
-// Create a document client instance to work with DynamoDB
-const docClient = DynamoDBDocumentClient.from(client);
+  //kolla så att antalet gäster inte överstiger antal möjliga platser
+  //kolla om nya rummen är lediga, om inte skicka tillbaka message
+  //om lediga avboka gamla rummen, boka de nya
 
-// Function to validate booking data
-const validateBookingData = (bookingDetails) => {
-  const { name, email, inDate, outDate, totalGuests, rooms } = bookingDetails;
+  if (rooms) {
+    const assignedRooms = [];
 
-  if (!name || !email || !totalGuests || !Array.isArray(rooms)) {
-    return createErrorResponse("Invalid input data. Please check all fields.");
-  }
-
-  if (!validateDate(inDate) || !validateDate(outDate)) {
-    return createErrorResponse(
-      "Invalid date format. Format must be YYYY-MM-DD."
+    const isValidTotalGuests = validateRoomGuests(
+      rooms,
+      totalGuests ? totalGuests : booking.totalGuests
     );
+
+    if (!isValidTotalGuests) {
+      return {
+        success: false,
+        message: "Insufficient capacity for all guests.",
+      };
+    }
+
+    const command = new QueryCommand({
+      TableName: process.env.ROOMS_TABLE,
+      IndexName: "availableStatusIndex",
+      KeyConditionExpression: "#status = :value",
+      ExpressionAttributeNames: {
+        "#status": "availableStatus",
+      },
+      ExpressionAttributeValues: {
+        ":value": "true",
+      },
+    });
+
+    console.log("COMMAND", command);
+
+    // Fetch all available rooms
+    const availableRooms = await docClient.send(command);
+    console.log("AVAILABLE ROOMS", availableRooms);
+
+    rooms.forEach((room) => {
+      const foundRoom = availableRooms.Items.find(
+        (availableRoom) => availableRoom.roomType === room
+      );
+      if (!foundRoom) {
+        assignedRooms.push(false);
+      } else {
+        assignedRooms.push(foundRoom);
+      }
+      console.log("FOUND ROOM", foundRoom);
+    });
+    // här ska vi avboka booking.rooms ["",""]
+
+    console.log("ROOMS", assignedRooms);
+
+    // If one or more room selections are fully booked
+    if (assignedRooms.includes(false)) {
+      return {
+        success: false,
+        message: "One or more of your room selections are fully booked.",
+      };
+    }
   }
 
-  if (!validateRoomTypes(rooms)) {
-    return createErrorResponse(
-      "Invalid room type. Choose Single, Double, or Suite."
-    );
-  }
-
-  return { success: true };
-};
-
-// Helper function to create an error response
-const createErrorResponse = (message) => ({
-  success: false,
-  message,
-});
-
-// Function to create the DynamoDB UpdateCommand
-const createUpdateCommand = (bookingDetails) => {
-  const { bookingId, name, email, inDate, outDate, totalGuests, rooms } =
-    bookingDetails;
-
-  return new UpdateCommand({
+  const updateData = new UpdateCommand({
     TableName: process.env.BOOKING_TABLE,
-    Key: { bookingId },
-    UpdateExpression:
-      "SET #n = :name, #e = :email, #in = :inDate, #out = :outDate, #guests = :totalGuests, #r = :rooms",
-    ExpressionAttributeNames: {
-      "#n": "name",
-      "#e": "email",
-      "#in": "inDate",
-      "#out": "outDate",
-      "#guests": "totalGuests",
-      "#r": "rooms",
+    Key: {
+      bookingId: booking.bookingId,
     },
+    UpdateExpression:
+      "set inDate = :inDate, outDate = :outDate, totalGuests = :totalGuests, rooms = :rooms",
     ExpressionAttributeValues: {
-      ":name": name,
-      ":email": email,
-      ":inDate": inDate,
-      ":outDate": outDate,
-      ":totalGuests": totalGuests,
-      ":rooms": rooms,
+      ":inDate": inDate ? inDate : booking.inDate,
+      ":outDate": outDate ? outDate : booking.outDate,
+      ":totalGuests": totalGuests ? totalGuests : booking.totalGuests,
+      ":rooms": assignedRooms.length ? assignedRooms : booking.rooms,
     },
     ReturnValues: "ALL_NEW",
   });
-};
 
-// Function to handle the update request
-const updateBookings = async (req, res) => {
-  const bookingDetails = req.body;
+  // Update the booking information
+  const updateResponseData = await docClient.send(updateData);
+  console.log("UPDATERESPONSEDATA", updateResponseData);
 
-  const validation = validateBookingData(bookingDetails);
-  if (!validation.success) {
-    return res.status(400).json(validation);
-  }
-
-  return await executeUpdate(bookingDetails, res);
-};
-
-// Helper function to execute the DynamoDB update
-const executeUpdate = async (bookingDetails, res) => {
-  const command = createUpdateCommand(bookingDetails);
-
-  const response = await tryUpdate(command);
-  if (!response.success) {
-    return res.status(500).json({
-      success: false,
-      message: "Error updating booking",
-      error: response.error,
-    });
-  }
-
-  return res.status(200).json({
+  // Return the updated response data
+  return {
     success: true,
-    message: "Booking updated successfully",
-    updatedItem: response.data,
-  });
+    data: updateResponseData,
+  };
 };
 
-// Helper function to attempt the DynamoDB update and handle errors
-const tryUpdate = async (command) => {
-  try {
-    const response = await docClient.send(command);
-    return { success: true, data: response.Attributes };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// const command = new UpdateCommand({
+//   TableName: "todos",
+//   Key: {
+//       taskId: 1,
+//   },
+//   UpdateExpression: "set Color = :color, task = :task",
+//   ExpressionAttributeValues: {
+//       ":color": "gul",
+//       ":task": "köpa leksak"
+//   },
+//   ReturnValues: "ALL_NEW",
 
-module.exports = { updateBookings };
+module.exports = { updateBooking };
