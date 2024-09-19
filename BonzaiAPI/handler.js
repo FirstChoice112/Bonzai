@@ -41,7 +41,7 @@ const handleError = (
   statusCode = 500,
   message = "Internal Server Error"
 ) => {
-  console.error(error);
+  console.error(`Error: ${message}`, error);
   res.status(statusCode).json({ error: message });
 };
 
@@ -58,131 +58,124 @@ app.post("/bookroom", async (req, res) => {
 
   try {
     const { name, email, inDate, outDate, totalGuests, rooms } = req.body;
+
+    console.log("Request body received:", req.body);
+
     const isValidInDate = validateDate(inDate);
     const isValidOutDate = validateDate(outDate);
 
-    console.log("reqbody", req.body);
     if (!isValidInDate || !isValidOutDate) {
+      console.error("Invalid date format provided:", { inDate, outDate });
       return res
         .status(400)
-        .json({ message: "invalid dateformat, yyyy-mm-dd is required" });
+        .json({ message: "Invalid date format, yyyy-mm-dd is required" });
     }
 
     const isValidRoomTypes = validateRoomTypes(rooms);
     if (!isValidRoomTypes) {
+      console.error("Invalid room type provided:", rooms);
       return res.status(400).json({
         message: "Invalid room type. Choose Single, Double, or Suite.",
       });
     }
 
-    const typeSpec = {
-      name: "string",
-      email: "string",
-      inDate: "string",
-      outdate: "YYYY-MM-DD",
-      totalGuests: "number",
-      rooms: "array",
-    };
-
     const isValid = checkValidDataType(req);
-    console.log("isvalid", isValid);
     if (!isValid) {
-      return res
-        .status(400)
-        .json({ message: "All fields are required", typeSpec });
+      console.error("Invalid data types in the request body:", req.body);
+      return res.status(400).json({
+        message: "All fields are required",
+        typeSpec: {
+          name: "string",
+          email: "string",
+          inDate: "string",
+          outDate: "YYYY-MM-DD",
+          totalGuests: "number",
+          rooms: "array",
+        },
+      });
     }
 
     const placeholder = {
       bookingId: uuid,
       name,
       email,
-      inDate: inDate, // format 2024-09-17
-      outDate: outDate, // format 2024-09-17
-      totalGuests, // Total guest
+      inDate,
+      outDate,
+      totalGuests,
       rooms,
     };
 
     const response = await bookRooms(placeholder);
 
-    console.log("placeholder", placeholder);
-    console.log("RESPONSE", response);
+    console.log("Booking request placeholder:", placeholder);
+    console.log("Response from bookRooms:", response);
 
     if (!response.success) {
-      res.status(400).json({
+      console.error("Booking failed with response:", response);
+      return res.status(400).json({
         data: response,
         success: response.success,
         message: response.message,
       });
     }
 
+    console.log("Booking successful with response:", response);
     res.status(200).json({ data: response });
   } catch (error) {
-    console.error("ERROR", error);
-    res.status(500).json({ message: "Something is wrong" });
+    console.error("Error occurred during room booking:", error);
+    handleError(res, error);
   }
 });
+
+// @route       PUT /update
+// @desc        Update an existing booking
+// @access      Public (or Private if authentication is required)
 
 app.put("/update", async (req, res) => {
   try {
     const { bookingId, updates } = req.body;
+    console.log(
+      `Request to update booking ID: ${bookingId} with updates:`,
+      updates
+    );
+
     const booking = await checkBookingId(bookingId);
     if (!booking) {
+      console.error(`Booking not found for ID: ${bookingId}`);
       return res.status(400).json({ message: "Booking could not be found" });
     }
-    const validDataTypes = {
-      inDate: "YYYY-MM-DD",
-      outDate: "YYYY-MM-DD",
-      totalGuests: "number",
-      rooms: ["suite", "double", "single"],
-    };
+
     const isValidUpdates = checkValidUpdates(updates);
     if (!isValidUpdates) {
-      return res
-        .status(400)
-        .json({ message: "Invalid datatypes", validDataTypes });
+      console.error(
+        `Invalid updates provided for booking ID: ${bookingId}`,
+        updates
+      );
+      return res.status(400).json({
+        message: "Invalid data types",
+        validDataTypes: {
+          inDate: "YYYY-MM-DD",
+          outDate: "YYYY-MM-DD",
+          totalGuests: "number",
+          rooms: ["suite", "double", "single"],
+        },
+      });
     }
+
     const response = await updateBooking(booking, updates);
+    console.log(`Booking update successful for ID: ${bookingId}`, response);
 
     return res.status(200).json({ msg: "UPDATE OK!" });
   } catch (error) {
-    console.log("ERROR UPDATE IN HANDLER", error);
-    return res.status(500).json({ msg: "No, cannot update" });
+    console.error("Error occurred during booking update:", error);
+    return handleError(res, error, 500, "No, cannot update");
   }
 });
 
-app.use((req, res) => res.status(404).json({ error: "Not Found" }));
+// Handle unknown routes with 404 error
+app.use((req, res) => {
+  console.error(`Route not found: ${req.originalUrl}`);
+  res.status(404).json({ error: "Not Found" });
+});
 
 exports.handler = serverless(app);
-
-/* 
-
-exports.handler = serverless(app);
-const checkValidUpdates = (updates) => {
-  const validKeys = ["rooms", "inDate", "outDate", "totalGuests"];
-  
-  // Check if all keys in updates are valid
-  for (const key of Object.keys(updates)) {
-    if (!validKeys.includes(key)) {
-      return false;
-    }
-  }
-
-  // Validation map
-  const validations = {
-    rooms: validateRoomTypes,
-    inDate: validateDate,
-    outDate: validateDate,
-    totalGuests: (val) => typeof val === "number",
-  };
-
-  // Iterate through each update and validate
-  for (const key of Object.keys(updates)) {
-    if (validations[key] && !validations[key](updates[key])) {
-      return false;
-    }
-  }
-
-  return true;
-};
-
-*/
