@@ -5,7 +5,7 @@ const {
   PutCommand,
   UpdateCommand,
 } = require("../config/config");
-const { validateRoomGuests } = require("./validateServices");
+const { validateRoomGuests, } = require("./validateServices");
 
 // Books rooms based on the provided booking details and availability of rooms
 const bookRooms = async (bookingDetails) => {
