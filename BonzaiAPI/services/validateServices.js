@@ -169,6 +169,14 @@ const checkValidDataType = (req) => {
   return true;
 };
 
+const checkInAndOutDate = (inDate, outDate) => {
+  const inCheckDate = new Date(inDate);
+  inCheckDate.setHours(0, 0, 0, 0);
+  const outCheckDate = new Date(outDate);
+  outCheckDate.setHours(0, 0, 0, 0);
+  return outCheckDate >= inCheckDate;
+};
+
 module.exports = {
   validateRoomTypes,
   validateRoomGuests,
@@ -177,4 +185,87 @@ module.exports = {
   checkBookingId,
   checkValidUpdates,
   checkValidDataType,
+  checkInAndOutDate,
 };
+
+/* 
+
+//MARCUS
+
+const { client, docClient, GetCommand } = require("../config/config");
+
+const validateRoomTypes = (rooms) => {
+  const validValues = ["single", "double", "suite"];
+  const isValid = rooms.every((room) => validValues.includes(room.toLowerCase()));
+  console[isValid ? "log" : "error"](`Room types validation result: ${rooms}`);
+  return isValid;
+};
+
+const validateRoomGuests = (rooms, totalGuests) => {
+  const roomCapacity = { single: 1, double: 2, suite: 3 };
+  const totalCapacity = rooms.reduce((acc, room) => acc + (roomCapacity[room.toLowerCase()] || 0), 0);
+  const isValid = totalCapacity >= totalGuests;
+  console[isValid ? "log" : "error"](`Guest capacity validation: ${isValid ? "Sufficient" : "Insufficient"}`);
+  return isValid;
+};
+
+const validateDate = (stringDate) => {
+  const regex = /^\d{4}-\d{2}-\d{2}$/;
+  const isValid = regex.test(stringDate) && new Date(stringDate) >= new Date();
+  console[isValid ? "log" : "error"](`Date validation: ${isValid ? "Valid" : "Invalid"} - ${stringDate}`);
+  return isValid;
+};
+
+const checkDaysBetweenDates = (date1, date2) => {
+  const daysDiff = Math.round((new Date(date2) - new Date(date1)) / (1000 * 3600 * 24));
+  console.log(`Days between dates: ${daysDiff}`);
+  return daysDiff;
+};
+
+const checkBookingId = async (bookingId) => {
+  try {
+    const { Item } = await docClient.send(
+      new GetCommand({ TableName: process.env.BOOKING_TABLE, Key: { bookingId } })
+    );
+    console[Item ? "log" : "error"](`Booking ${Item ? "found" : "not found"}: ${bookingId}`);
+    return Item || false;
+  } catch (error) {
+    console.error(`Error fetching booking: ${error}`);
+    return false;
+  }
+};
+
+const checkValidUpdates = (updates) => {
+  const validKeys = ["rooms", "inDate", "outDate", "totalGuests"];
+  const isValid = Object.keys(updates).every((key) => validKeys.includes(key));
+  
+  if (updates.rooms && !validateRoomTypes(updates.rooms)) return false;
+  if (updates.inDate && !validateDate(updates.inDate)) return false;
+  if (updates.outDate && !validateDate(updates.outDate)) return false;
+  if (updates.totalGuests && typeof updates.totalGuests !== "number") return false;
+
+  return isValid;
+};
+
+const checkValidDataType = ({ body: { name, email, inDate, outDate, totalGuests, rooms } }) => {
+  const isValid = [name, email].every((field) => typeof field === "string") &&
+                  [inDate, outDate].every(validateDate) &&
+                  typeof totalGuests === "number" && rooms.length > 0;
+  console[isValid ? "log" : "error"](`Data type validation: ${isValid ? "Valid" : "Invalid"}`);
+  return isValid;
+};
+
+const checkInAndOutDate = (inDate, outDate) => new Date(outDate) >= new Date(inDate);
+
+module.exports = {
+  validateRoomTypes,
+  validateRoomGuests,
+  validateDate,
+  checkDaysBetweenDates,
+  checkBookingId,
+  checkValidUpdates,
+  checkValidDataType,
+  checkInAndOutDate,
+};
+
+*/

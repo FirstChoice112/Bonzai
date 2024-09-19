@@ -5,7 +5,10 @@ const {
   PutCommand,
   UpdateCommand,
 } = require("../config/config");
-const { validateRoomGuests } = require("./validateServices");
+const {
+  validateRoomGuests,
+  checkDaysBetweenDates,
+} = require("./validateServices");
 
 // Books rooms based on the provided booking details and availability of rooms
 const bookRooms = async (bookingDetails) => {
@@ -86,10 +89,13 @@ const bookRooms = async (bookingDetails) => {
     }
 
     // Calculate the total cost of the rooms
+    const totalNightsStayed = checkDaysBetweenDates(inDate, outDate);
     let totalCost = 0;
     assignedRooms.forEach((room) => {
       totalCost += room.price;
     });
+    totalCost *= totalNightsStayed;
+    console.log("multiplied total", totalCost);
 
     // Create a booking entry in the booking table
     const bookingCommand = new PutCommand({
@@ -133,3 +139,78 @@ const bookRooms = async (bookingDetails) => {
 };
 
 module.exports = { bookRooms };
+
+/* 
+
+//Marcus 
+
+const { client, docClient, QueryCommand, PutCommand, UpdateCommand } = require("../config/config");
+const { validateRoomGuests, checkDaysBetweenDates } = require("./validateServices");
+
+// Books rooms based on the provided booking details and availability of rooms
+const bookRooms = async ({ bookingId, name, email, inDate, outDate, totalGuests, rooms }) => {
+  try {
+    // Validate total guest capacity
+    if (!validateRoomGuests(rooms, totalGuests)) {
+      return { success: false, message: "Insufficient capacity for all guests." };
+    }
+
+    // Fetch available rooms
+    const availableRooms = (
+      await docClient.send(
+        new QueryCommand({
+          TableName: process.env.ROOMS_TABLE,
+          IndexName: "availableStatusIndex",
+          KeyConditionExpression: "#status = :value",
+          ExpressionAttributeNames: { "#status": "availableStatus" },
+          ExpressionAttributeValues: { ":value": "true" },
+        })
+      )
+    ).Items;
+
+    // Find and assign available rooms
+    const assignedRooms = rooms.map((room) => availableRooms.find(({ roomType }) => roomType === room) || false);
+    if (assignedRooms.includes(false)) {
+      return { success: false, message: "One or more of your room selections are fully booked." };
+    }
+
+    // Mark rooms as unavailable in parallel
+    await Promise.all(
+      assignedRooms.map(({ roomId }) =>
+        docClient.send(
+          new UpdateCommand({
+            TableName: process.env.ROOMS_TABLE,
+            Key: { roomId: roomId.toString() },
+            UpdateExpression: "SET availableStatus = :availableStatus",
+            ExpressionAttributeValues: { ":availableStatus": "false" },
+          })
+        )
+      )
+    );
+
+    // Calculate total cost
+    const totalCost = assignedRooms.reduce((acc, { price }) => acc + price, 0) * checkDaysBetweenDates(inDate, outDate);
+
+    // Store booking
+    await docClient.send(
+      new PutCommand({
+        TableName: process.env.BOOKING_TABLE,
+        Item: { bookingId, name, email, inDate, outDate, totalGuests, rooms: assignedRooms.map(({ roomId }) => roomId), totalCost },
+      })
+    );
+
+    return {
+      success: true,
+      message: "Booking stored successfully",
+      booking: { bookingId, name, email, inDate, outDate, totalGuests, rooms: assignedRooms.map(({ roomId }) => roomId), totalCost },
+    };
+  } catch (error) {
+    console.error("Error during booking:", error);
+    return { success: false, message: "Error occurred during booking." };
+  }
+};
+
+module.exports = { bookRooms };
+
+
+*/

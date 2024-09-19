@@ -18,9 +18,13 @@ const {
   checkBookingId,
   checkValidUpdates,
   checkValidDataType,
+  checkDaysBetweenDates,
+  checkInAndOutDate,
 } = require("./services/validateServices");
 const { bookRooms } = require("./services/bookRooms");
 const { updateBooking } = require("./services/updateBooking");
+const { cancelBooking } = require("./services/cancelBooking");
+const { getBookings } = require("./services/getBookings");
 const express = require("express");
 const serverless = require("serverless-http");
 
@@ -45,13 +49,15 @@ const handleError = (
   res.status(statusCode).json({ error: message });
 };
 
-app.get("/all", async (req, res) => {
-  res.status(400).json({ msg: "jag gillar hestar!" });
-});
+app.get("/allbookings", async (req, res) => {
+  try {
+    const response = await getBookings();
 
-// @route       POST /bookroom
-// @desc        Book a room for a specified date range and guest details
-// @access      Public (or Private if authentication is required)
+    res.status(200).json({ bookings: response });
+  } catch (error) {
+    return res.status(500).json({ message: "Faild to fetch bookings" });
+  }
+});
 
 app.post("/bookroom", async (req, res) => {
   let uuid = crypto.randomUUID();
@@ -104,7 +110,12 @@ app.post("/bookroom", async (req, res) => {
       totalGuests,
       rooms,
     };
-
+    const isValidInOutDates = checkInAndOutDate(inDate, outDate);
+    if (!isValidInOutDates) {
+      return res
+        .status(404)
+        .json({ message: "outdate can't be booked before indate" });
+    }
     const response = await bookRooms(placeholder);
 
     console.log("Booking request placeholder:", placeholder);
@@ -127,9 +138,9 @@ app.post("/bookroom", async (req, res) => {
   }
 });
 
-// @route       PUT /update
-// @desc        Update an existing booking
-// @access      Public (or Private if authentication is required)
+// @route   PUT /update
+// @desc    Update an existing booking
+// @access  Public (or Private)
 
 app.put("/update", async (req, res) => {
   try {
@@ -161,21 +172,190 @@ app.put("/update", async (req, res) => {
         },
       });
     }
+    if (updates.inDate || updates.outDate) {
+      const inDate = updates.inDate ? updates.inDate : booking.inDate;
+      const outDate = updates.outDate ? updates.outDate : booking.outDate;
+      const isValidInOutDates = checkInAndOutDate(inDate, outDate);
+      if (!isValidInOutDates) {
+        return res
+          .status(404)
+          .json({ message: "outdate can't be before indate" });
+      }
+    }
 
     const response = await updateBooking(booking, updates);
     console.log(`Booking update successful for ID: ${bookingId}`, response);
-
-    return res.status(200).json({ msg: "UPDATE OK!" });
+    if (!response.success) {
+      return res.status(500).json({
+        message: response.message
+          ? response.message
+          : "Your updated booking was declined from database",
+      });
+    }
+    return res
+      .status(200)
+      .json({ data: response.data, message: response.message });
   } catch (error) {
     console.error("Error occurred during booking update:", error);
-    return handleError(res, error, 500, "No, cannot update");
+    return res.status(500).json({ message: "faild to update booking" });
   }
 });
 
-// Handle unknown routes with 404 error
+// @route   DELETE /cancelbooking/:bookingId
+// @desc    Cancel an existing booking by booking ID
+// @access  Public (or Private)
+
+app.delete("/cancelbooking/:bookingId", async (req, res) => {
+  const { bookingId } = req.params;
+  try {
+    const booking = await checkBookingId(bookingId);
+
+    if (!booking) {
+      return res
+        .status(400)
+        .json({ message: "Your booking could not be found" });
+    }
+
+    const today = new Date();
+    const dateDiff = checkDaysBetweenDates(today, booking.inDate);
+
+    if (dateDiff < 2) {
+      return res.status(400).json({
+        message:
+          "Booking cannot be canceled within less than two days of the check-in date",
+      });
+    }
+
+    await cancelBooking(booking, bookingId);
+    // Return success message
+    return res.status(200).json({
+      message: "Booking canceled successfully",
+      canceledBooking: booking,
+    });
+  } catch (error) {
+    console.error("Error occurred during booking cancellation:", error);
+    return res.status(500).json({ message: "faild to cancel booking" });
+  }
+});
+
+// @route       All undefined routes
+// @desc        Handle unknown routes with 404 error
+// @access      Public
+
 app.use((req, res) => {
   console.error(`Route not found: ${req.originalUrl}`);
-  res.status(404).json({ error: "Not Found" });
+  res.status(404).json({ error: "Route not found" });
 });
 
 exports.handler = serverless(app);
+
+/* 
+
+//MARCUS
+
+// @route   POST /bookroom
+// @desc    Book a room for a specified date range and guest details
+// @access  Public (or Private)
+
+app.post("/bookroom", async (req, res) => {
+  const uuid = crypto.randomUUID();
+  const { name, email, inDate, outDate, totalGuests, rooms } = req.body;
+
+  try {
+    if (!validateDate(inDate) || !validateDate(outDate)) {
+      return res.status(400).json({ message: "Invalid date format, yyyy-mm-dd required" });
+    }
+
+    if (!validateRoomTypes(rooms)) {
+      return res.status(400).json({ message: "Invalid room type. Choose Single, Double, or Suite." });
+    }
+
+    if (!checkValidDataType(req)) {
+      return res.status(400).json({
+        message: "All fields are required",
+        typeSpec: {
+          name: "string", email: "string", inDate: "string", outDate: "YYYY-MM-DD", totalGuests: "number", rooms: "array"
+        },
+      });
+    }
+
+    const bookingData = { bookingId: uuid, name, email, inDate, outDate, totalGuests, rooms };
+    const response = await bookRooms(bookingData);
+
+    if (!response.success) {
+      return res.status(400).json({ data: response, success: false, message: response.message });
+    }
+
+    res.status(200).json({ data: response });
+  } catch (error) {
+    handleError(res, error);
+  }
+});
+
+// @route   PUT /update
+// @desc    Update an existing booking
+// @access  Public (or Private)
+
+app.put("/update", async (req, res) => {
+  try {
+    const { bookingId, updates } = req.body;
+
+    const booking = await checkBookingId(bookingId);
+    if (!booking) {
+      return res.status(400).json({ message: "Booking not found" });
+    }
+
+    if (!checkValidUpdates(updates)) {
+      return res.status(400).json({
+        message: "Invalid data types",
+        validDataTypes: {
+          inDate: "YYYY-MM-DD",
+          outDate: "YYYY-MM-DD",
+          totalGuests: "number",
+          rooms: ["suite", "double", "single"],
+        },
+      });
+    }
+
+    const response = await updateBooking(booking, updates);
+    if (!response.success) {
+      return res.status(500).json({ message: response.message || "Update declined" });
+    }
+
+    return res.status(200).json({ data: response.data, message: response.message });
+  } catch (error) {
+    return handleError(res, error, 500, "Unable to update booking");
+  }
+});
+
+// @route   DELETE /cancelbooking/:bookingId
+// @desc    Cancel an existing booking by booking ID
+// @access  Public (or Private)
+
+app.delete("/cancelbooking/:bookingId", async (req, res) => {
+  const { bookingId } = req.params;
+  try {
+    const booking = await checkBookingId(bookingId);
+
+    if (!booking) {
+      return res.status(400).json({ message: "Booking not found" });
+    }
+
+    if (checkDaysBetweenDates(new Date(), booking.inDate) < 2) {
+      return res.status(400).json({ message: "Cannot cancel within 2 days of check-in" });
+    }
+
+    const response = await cancelBooking(booking, bookingId);
+
+    if (!response.success) {
+      return res.status(500).json({ message: "Cancellation failed" });
+    }
+
+    return res.status(200).json({ message: "Booking canceled successfully" });
+  } catch (error) {
+    return handleError(res, error, 500, "Unable to cancel booking");
+  }
+});
+
+
+*/

@@ -10,7 +10,11 @@ const {
   QueryCommand,
 } = require("../config/config.js");
 
-const { validateRoomTypes, validateRoomGuests } = require("./validateServices");
+const {
+  validateRoomTypes,
+  validateRoomGuests,
+  checkDaysBetweenDates,
+} = require("./validateServices");
 
 const updateBooking = async (booking, updates) => {
   // Extract booking details such as dates, total guests, and room updates from the provided input.
@@ -58,14 +62,23 @@ const updateBooking = async (booking, updates) => {
       const availableRooms = await docClient.send(command);
       console.log("AVAILABLE ROOMS", availableRooms);
       //måste ha unika rums
+      let changeableAvailableRooms = availableRooms.Items;
       rooms.forEach((room) => {
-        const foundRoom = availableRooms.Items.find(
+        console.log(
+          "innan filtrering changavalableroom",
+          changeableAvailableRooms
+        );
+        const foundRoom = changeableAvailableRooms.find(
           (availableRoom) => availableRoom.roomType === room
         );
         if (!foundRoom) {
           assignedRooms.push(false);
         } else {
+          changeableAvailableRooms = changeableAvailableRooms.filter(
+            (room) => room.roomId !== foundRoom.roomId
+          );
           assignedRooms.push(foundRoom);
+          console.log("efter filtrering:", changeableAvailableRooms);
         }
         console.log("FOUND ROOM", foundRoom);
       });
@@ -104,9 +117,11 @@ const updateBooking = async (booking, updates) => {
           console.log("UPDATE ERROR", error);
         }
       }
+      const totalNightsStayed = checkDaysBetweenDates(inDate, outDate);
       assignedRooms.forEach((room) => {
         newTotalCost += room.price;
       });
+      newTotalCost *= totalNightsStayed;
 
       //uppdatera gamla rummen till lediga
       if (assignedRooms.length) {
@@ -125,9 +140,9 @@ const updateBooking = async (booking, updates) => {
             });
 
             const response = await docClient.send(updateRoomCommand);
-            console.log("ROOM UPDATE RESPONSE", response);
+            console.log("Rooms update responses", response);
           } catch (error) {
-            console.log("UPDATE ERROR", error);
+            console.log("Failed to update rooms.", error);
           }
         }
       }
@@ -178,5 +193,100 @@ const updateBooking = async (booking, updates) => {
 module.exports = { updateBooking };
 
 /* 
+
+//MARCUS
+
+const { docClient, DeleteCommand, UpdateCommand, QueryCommand } = require("../config/config.js");
+const { validateRoomGuests, checkDaysBetweenDates } = require("./validateServices");
+
+const updateBooking = async (booking, updates) => {
+  const { inDate, outDate, totalGuests = booking.totalGuests, rooms } = updates;
+
+  try {
+    if (rooms) {
+      if (!validateRoomGuests(rooms, totalGuests)) {
+        return { success: false, message: "Insufficient capacity for all guests." };
+      }
+
+      const availableRooms = (
+        await docClient.send(
+          new QueryCommand({
+            TableName: process.env.ROOMS_TABLE,
+            IndexName: "availableStatusIndex",
+            KeyConditionExpression: "#status = :value",
+            ExpressionAttributeNames: { "#status": "availableStatus" },
+            ExpressionAttributeValues: { ":value": "true" },
+          })
+        )
+      ).Items;
+
+      const assignedRooms = rooms.map((roomType) => {
+        const room = availableRooms.find(({ roomType: rt }) => rt === roomType);
+        return room || false;
+      });
+
+      if (assignedRooms.includes(false)) {
+        return { success: false, message: "One or more of your room selections are fully booked." };
+      }
+
+      // Update room availability
+      await Promise.all(
+        assignedRooms.map(({ roomId }) =>
+          docClient.send(
+            new UpdateCommand({
+              TableName: process.env.ROOMS_TABLE,
+              Key: { roomId: roomId.toString() },
+              UpdateExpression: "SET availableStatus = :availableStatus",
+              ExpressionAttributeValues: { ":availableStatus": "false" },
+            })
+          )
+        )
+      );
+
+      // Free previously booked rooms
+      await Promise.all(
+        booking.rooms.map((roomId) =>
+          docClient.send(
+            new UpdateCommand({
+              TableName: process.env.ROOMS_TABLE,
+              Key: { roomId: roomId.toString() },
+              UpdateExpression: "SET availableStatus = :availableStatus",
+              ExpressionAttributeValues: { ":availableStatus": "true" },
+            })
+          )
+        )
+      );
+
+      // Calculate new total cost
+      const totalCost =
+        assignedRooms.reduce((sum, { price }) => sum + price, 0) * checkDaysBetweenDates(inDate, outDate);
+    }
+
+    // Update booking details
+    const updateResponseData = await docClient.send(
+      new UpdateCommand({
+        TableName: process.env.BOOKING_TABLE,
+        Key: { bookingId: booking.bookingId },
+        UpdateExpression:
+          "set inDate = :inDate, outDate = :outDate, totalGuests = :totalGuests, rooms = :rooms, totalCost = :totalCost",
+        ExpressionAttributeValues: {
+          ":inDate": inDate || booking.inDate,
+          ":outDate": outDate || booking.outDate,
+          ":totalGuests": totalGuests,
+          ":rooms": rooms ? rooms.map(({ roomId }) => roomId) : booking.rooms,
+          ":totalCost": totalCost || booking.totalCost,
+        },
+      })
+    );
+
+    return { success: true, data: updateResponseData };
+  } catch (error) {
+    console.error("Error occurred during booking update:", error);
+    return { success: false, message: "An error occurred while updating the booking." };
+  }
+};
+
+module.exports = { updateBooking };
+
 
 */

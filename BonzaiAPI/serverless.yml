@@ -47,11 +47,14 @@ functions:
           method: POST
         events:
       - httpApi:
-          path: /deletebooking/{bookingId}
+          path: /cancelbooking/{bookingId}
           method: DELETE
       - httpApi:
-          path: /Update
+          path: /update
           method: PUT
+      - httpApi:
+          path: /allbookings
+          method: GET
 
 resources:
   Resources:
