@@ -3,16 +3,34 @@ const { client, docClient, GetCommand } = require("../config/config");
 // Validates that all room types in the array are valid values
 const validateRoomTypes = (rooms) => {
   const validValues = ["single", "double", "suite"];
-  return rooms.every((item) => validValues.includes(item.toLowerCase()));
+  const isValid = rooms.every((item) =>
+    validValues.includes(item.toLowerCase())
+  );
+
+  if (!isValid) {
+    console.error(`Invalid room types detected: ${rooms}`);
+  } else {
+    console.log(`All room types are valid: ${rooms}`);
+  }
+
+  return isValid;
 };
 
 // Checks if the total room capacity is sufficient for the given number of guests
 const validateRoomGuests = (rooms, totalGuests) => {
   const roomCapacity = { single: 1, double: 2, suite: 3 };
-  const totalCapacity = rooms.reduce(
-    (acc, room) => acc + roomCapacity[room],
-    0
-  );
+
+  const totalCapacity = rooms.reduce((acc, room) => {
+    const capacity = roomCapacity[room.toLowerCase()];
+    if (capacity) {
+      return acc + capacity;
+    } else {
+      console.error(
+        `Invalid room type detected during guest validation: ${room}`
+      );
+      return acc;
+    }
+  }, 0);
 
   const result = totalCapacity >= totalGuests;
   console.log(
@@ -26,12 +44,22 @@ const validateRoomGuests = (rooms, totalGuests) => {
 // Validates if the given date string is in "YYYY-MM-DD" format and is not in the past
 const validateDate = (stringDate) => {
   const regex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!regex.test(stringDate)) return false;
+  if (!regex.test(stringDate)) {
+    console.error(`Invalid date format: ${stringDate}`);
+    return false;
+  }
 
   const bookedDay = new Date(stringDate).setHours(0, 0, 0, 0);
   const today = new Date().setHours(0, 0, 0, 0);
 
-  return bookedDay >= today && !isNaN(Date.parse(stringDate));
+  const isValidDate = bookedDay >= today && !isNaN(Date.parse(stringDate));
+  if (!isValidDate) {
+    console.error(`Date is either in the past or invalid: ${stringDate}`);
+  } else {
+    console.log(`Valid date provided: ${stringDate}`);
+  }
+
+  return isValidDate;
 };
 
 // Calculates the number of days between two dates
@@ -50,30 +78,42 @@ const checkDaysBetweenDates = (date1, date2) => {
 
 // Fetches booking information by bookingId from the database
 const checkBookingId = async (bookingId) => {
-  const bookingresponse = await docClient.send(
-    new GetCommand({
-      TableName: process.env.BOOKING_TABLE,
-      Key: { bookingId },
-    })
-  );
+  try {
+    const bookingresponse = await docClient.send(
+      new GetCommand({
+        TableName: process.env.BOOKING_TABLE,
+        Key: { bookingId },
+      })
+    );
 
-  console.log("Booking response:", bookingresponse);
-  return bookingresponse.Item || false;
+    if (!bookingresponse.Item) {
+      console.error(`No booking found with bookingId: ${bookingId}`);
+      return false;
+    }
+
+    console.log("Booking response:", bookingresponse);
+    return bookingresponse.Item;
+  } catch (error) {
+    console.error(`Error fetching booking with ID ${bookingId}:`, error);
+    return false;
+  }
 };
 
 const checkValidUpdates = (updates) => {
   const validKeys = ["rooms", "inDate", "outDate", "totalGuests"];
-  //Se över
-  for (const key of updates) {
-    const isValidKey = validKeys.includes(key);
-    if (!isValidKey) {
+
+  for (const key of Object.keys(updates)) {
+    if (!validKeys.includes(key)) {
+      console.error(`Invalid update key: ${key}`);
       return false;
     }
   }
 
   if (updates.rooms) {
     const isValidRoomTypes = validateRoomTypes(updates.rooms);
+    console.log("Validating rooms:", updates.rooms);
     if (!isValidRoomTypes) {
+      console.error(`Room validation failed: ${updates.rooms}`);
       return false;
     }
   }
@@ -81,6 +121,7 @@ const checkValidUpdates = (updates) => {
   if (updates.inDate) {
     const isValidInDateFormat = validateDate(updates.inDate);
     if (!isValidInDateFormat) {
+      console.error(`Invalid inDate format: ${updates.inDate}`);
       return false;
     }
   }
@@ -88,14 +129,14 @@ const checkValidUpdates = (updates) => {
   if (updates.outDate) {
     const isValidOutDateFormat = validateDate(updates.outDate);
     if (!isValidOutDateFormat) {
+      console.error(`Invalid outDate format: ${updates.outDate}`);
       return false;
     }
   }
 
-  if (updates.totalGuests) {
-    if (!typeof updates.totalGuests == "number") {
-      return false;
-    }
+  if (updates.totalGuests && typeof updates.totalGuests !== "number") {
+    console.error(`Invalid totalGuests value: ${updates.totalGuests}`);
+    return false;
   }
 
   return true;
@@ -104,27 +145,28 @@ const checkValidUpdates = (updates) => {
 const checkValidDataType = (req) => {
   const { name, email, inDate, outDate, totalGuests, rooms } = req.body;
 
-  console.log(typeof name, typeof email, typeof inDate, typeof outDate);
-
   if (!name || !email || !inDate || !outDate || !totalGuests || !rooms) {
-    console.log("reqbody");
+    console.error("Request body missing required fields:", req.body);
     return false;
   }
 
   if (typeof name !== "string") {
-    console.log("name smäller", typeof name);
+    console.error(`Invalid name data type: ${typeof name}`);
     return false;
   }
 
   if (typeof email !== "string") {
-    console.log("mail smäller", typeof email);
+    console.error(`Invalid email data type: ${typeof email}`);
     return false;
   }
 
   if (typeof totalGuests !== "number") {
-    console.log("toalguest smäller", typeof totalGuests);
+    console.error(`Invalid totalGuests data type: ${typeof totalGuests}`);
     return false;
-  } else return true;
+  }
+
+  console.log("Request data types are valid");
+  return true;
 };
 
 module.exports = {
@@ -136,49 +178,3 @@ module.exports = {
   checkValidUpdates,
   checkValidDataType,
 };
-
-/* 
-
-const checkValidUpdates = (updates) => {
-  const validKeys = ["rooms", "inDate", "outDate", "totalGuests"];
-
-  // Loop over the keys in the 'updates' object
-  for (const key in updates) {
-    const isValidKey = validKeys.includes(key); // Correct usage of includes
-    if (!isValidKey) {
-      return false;
-    }
-  }
-
-  if (updates.rooms) {
-    const isValidRoomTypes = validateRoomTypes(updates.rooms);
-    if (!isValidRoomTypes) {
-      return false;
-    }
-  }
-
-  if (updates.inDate) {
-    const isValidInDateFormat = validateDate(updates.inDate);
-    if (!isValidInDateFormat) {
-      return false;
-    }
-  }
-
-  if (updates.outDate) {
-    const isValidOutDateFormat = validateDate(updates.outDate);
-    if (!isValidOutDateFormat) {
-      return false;
-    }
-  }
-  
-  if (updates.totalGuests) {
-    if (typeof updates.totalGuests !== "number") { // Correct type check
-      return false;
-    }
-  }
-
-  return true;
-};
-
-
-*/
