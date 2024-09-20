@@ -1,16 +1,3 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-
-// Set up your DynamoDB client
-const {
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  UpdateCommand,
-  DeleteCommand,
-  ScanCommand,
-  QueryCommand,
-} = require("@aws-sdk/lib-dynamodb");
-
 // Import your custom services
 const {
   validateDate,
@@ -20,6 +7,7 @@ const {
   checkValidDataType,
   checkDaysBetweenDates,
   checkInAndOutDate,
+  getRooms,
 } = require("./services/validateServices");
 const { bookRooms } = require("./services/bookRooms");
 const { updateBooking } = require("./services/updateBooking");
@@ -29,10 +17,6 @@ const express = require("express");
 const serverless = require("serverless-http");
 
 const app = express();
-
-// Initialize DynamoDB client and document client
-const client = new DynamoDBClient();
-const docClient = DynamoDBDocumentClient.from(client);
 
 // Middleware to generate a unique ID for each booking
 const crypto = require("crypto");
@@ -138,10 +122,6 @@ app.post("/bookroom", async (req, res) => {
   }
 });
 
-// @route   PUT /update
-// @desc    Update an existing booking
-// @access  Public (or Private)
-
 app.put("/update", async (req, res) => {
   try {
     const { bookingId, updates } = req.body;
@@ -182,9 +162,12 @@ app.put("/update", async (req, res) => {
           .json({ message: "outdate can't be before indate" });
       }
     }
+    let roomResponse;
+    if (!updates.rooms) {
+      roomResponse = await getRooms(booking.rooms);
+    }
+    const response = await updateBooking(booking, updates, roomResponse);
 
-    const response = await updateBooking(booking, updates);
-    console.log(`Booking update successful for ID: ${bookingId}`, response);
     if (!response.success) {
       return res.status(500).json({
         message: response.message
@@ -200,10 +183,6 @@ app.put("/update", async (req, res) => {
     return res.status(500).json({ message: "faild to update booking" });
   }
 });
-
-// @route   DELETE /cancelbooking/:bookingId
-// @desc    Cancel an existing booking by booking ID
-// @access  Public (or Private)
 
 app.delete("/cancelbooking/:bookingId", async (req, res) => {
   const { bookingId } = req.params;

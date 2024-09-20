@@ -1,90 +1,132 @@
-<!--
-title: 'Serverless Framework Node Express API service backed by DynamoDB on AWS'
-description: 'This template demonstrates how to develop and deploy a simple Node Express API service backed by DynamoDB running on AWS Lambda using the Serverless Framework.'
-layout: Doc
-framework: v4
-platform: AWS
-language: nodeJS
-priority: 1
-authorLink: 'https://github.com/serverless'
-authorName: 'Serverless, Inc.'
-authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4'
--->
-
 # Serverless Framework Node Express API on AWS
 
-This template demonstrates how to develop and deploy a simple Node Express API service, backed by DynamoDB table, running on AWS Lambda using the Serverless Framework.
+# BonzaiAPI
 
-This template configures a single function, `api`, which is responsible for handling all incoming requests using the `httpApi` event. To learn more about `httpApi` event configuration options, please refer to [httpApi event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api/). As the event is configured in a way to accept all incoming requests, the Express.js framework is responsible for routing and handling requests internally. This implementation uses the `serverless-http` package to transform the incoming event request payloads to payloads compatible with Express.js. To learn more about `serverless-http`, please refer to the [serverless-http README](https://github.com/dougmoscrop/serverless-http).
+### Projektbeskrivning
 
-Additionally, it also handles provisioning of a DynamoDB database that is used for storing data about users. The Express.js application exposes two endpoints, `POST /users` and `GET /user/:userId`, which create and retrieve a user record.
+BonzaiAPI är ett serverlöst hotellbokningssystem byggt på AWS som hanterar rumsbokningar, uppdateringar och avbokningar. Systemet använder DynamoDB för att lagra boknings- och rumsinformation och erbjuder användarvänliga funktioner för att skapa, uppdatera, och avboka rum. Det är designat för att vara skalbart och kostnadseffektivt genom användning av AWS Lambda och Serverless Framework.
+
+### Projektmedlemmar
+
+- **Theeraphan Apiban**
+- **Linn Johansson**
+- **Johan Skoog**
+- **Marcus Widén**
+
+---
+
+## Funktionalitet
+
+BonzaiAPI tillhandahåller följande funktioner:
+
+- **Boka rum**: Användare kan boka tillgängliga rum baserat på valda datum.
+- **Avboka bokning**: Användare kan avboka en bokning med hjälp av ett unikt boknings-ID.
+- **Uppdatera bokning**: Användare kan uppdatera en befintlig bokning (t.ex. ändra datum eller rum).
+- **Hämta alla bokningar**: Visar en lista över alla bokningar som gjorts i systemet.
+
+---
+
+## Valideringar
+
+- **vid bokning**:
+  -säkerställer så att vid bokning så finns alla efterfrågade properties med och att det är av rätt datatyp.
+- \*rooms
+- rooms ska va en Array innehållande strings och de tillåtna värdena är "single","double", "suite"
+- totalGuests får ej överstiga antalet totalt tållåtna beräknat på de önskade rummen
+- det går ej att genomföra sin bokning ifall någon av de valda rumstyperna är fullbokade
+- \*inDate/outDate
+- datum ska vara i formatet "yyyy-mm-dd", annars är det invalid. En säkerställning sker även så att outDate ej är före inDate och inDate får ej vara före idag.
+
+- **vid uppdatering**:
+- säkerställer så att den angivna bokningen med bookingId faktiskt finns
+- säkerställer att de properties som kommer med från body är en tillåten, samt att de är av rätt datatyp.
+- vid rums uppdatering skrivs de gamla rummen över, med de nya från body
+- samma valideringar som vid bokning gällande room samt inDate/outDate
+-
+
+- **vid avbokning**:
+- säkerställer så att det angivna bokningId finns
+- validering så att det minst är två dagar kvar till inDate, annars är avbokning är tillåten.
+- rummen som var bokade blir tillgängliga igen.
+
+## Teknologier
+
+Projektet använder följande teknologier:
+
+- **Backend**: Node.js, AWS Lambda
+- **Databas**: DynamoDB
+- **API Gateway**: AWS API Gateway
+- **Deployment**: Serverless Framework
+- **Språk**: JavaScript
+
+---
+
+## Förutsättningar
+
+För att köra projektet behöver du:
+
+- **Node.js** installerat
+- Ett **AWS-konto** konfigurerat
+- **Serverless Framework** installerat
+
+---
+
+## API-dokumentation
+
+Nedan följer en översikt av de API-slutpunkter som tillhandahålls av BonzaiAPI:
+
+POST /bookroom Boka ett rum
+DELETE /cancelbooking/{bookingId} Avboka en bokning
+PUT /update Uppdatera en bokning
+GET /allbookings Hämta alla bokningar
+
+## Databasstruktur
+
+BookingTable
+bookingId: Primärnyckel (String)
+checkInDate: Incheckningsdatum (String)
+guestName: Gästens namn (String)
+RoomsTable
+roomId: Primärnyckel (String)
+availableStatus: Anger om ett rum är tillgängligt (String)
+GlobalSecondaryIndexes: Index för att spåra rumstillgänglighet
 
 ## Usage
 
-### Deployment
+endpoints:
+POST - https://2l9zrqz682.execute-api.eu-north-1.amazonaws.com/bookroom
 
-Install dependencies with:
+schema body: JSON
+{
+"name":"namn",
+"email":"mail@mail.com",
+"inDate":"yyyy-mm-dd",
+"outDate": "yyyy-mm-dd",
+"totalGuests": number,
+"rooms": [
+"suite"
+"double",
+"single"
+]
+}
 
-```
-npm install
-```
+DELETE - https://2l9zrqz682.execute-api.eu-north-1.amazonaws.com/cancelbooking/{bookingId}
 
-and then deploy with:
+PUT - https://2l9zrqz682.execute-api.eu-north-1.amazonaws.com/update
 
-```
-serverless deploy
-```
+schema body: JSON
+{
+"bookingId":"bookingId",
+// vilka man vill ändra på
+"updates":{
+"inDate":"yyyy-mm-dd",
+"totalGuests" "number"
+"rooms":[
+"single",
+"double",
+"suite"
+]
+}
+}
 
-After running deploy, you should see output similar to:
-
-```
-Deploying "aws-node-express-dynamodb-api" to stage "dev" (us-east-1)
-
-✔ Service deployed to stack aws-node-express-dynamodb-api-dev (109s)
-
-endpoint: ANY - https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com
-functions:
-  api: aws-node-express-dynamodb-api-dev-api (3.8 MB)
-```
-
-_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer. For details on how to do that, refer to [`httpApi` event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api/). Additionally, in current configuration, the DynamoDB table will be removed when running `serverless remove`. To retain the DynamoDB table even after removal of the stack, add `DeletionPolicy: Retain` to its resource definition.
-
-### Invocation
-
-After successful deployment, you can create a new user by calling the corresponding endpoint:
-
-```
-curl --request POST 'https://xxxxxx.execute-api.us-east-1.amazonaws.com/users' --header 'Content-Type: application/json' --data-raw '{"name": "John", "userId": "someUserId"}'
-```
-
-Which should result in the following response:
-
-```json
-{ "userId": "someUserId", "name": "John" }
-```
-
-You can later retrieve the user by `userId` by calling the following endpoint:
-
-```
-curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com/users/someUserId
-```
-
-Which should result in the following response:
-
-```json
-{ "userId": "someUserId", "name": "John" }
-```
-
-### Local development
-
-The easiest way to develop and test your function is to use the `dev` command:
-
-```
-serverless dev
-```
-
-This will start a local emulator of AWS Lambda and tunnel your requests to and from AWS Lambda, allowing you to interact with your function as if it were running in the cloud.
-
-Now you can invoke the function as before, but this time the function will be executed locally. Now you can develop your function locally, invoke it, and see the results immediately without having to re-deploy.
-
-When you are done developing, don't forget to run `serverless deploy` to deploy the function to the cloud.
+GET - https://2l9zrqz682.execute-api.eu-north-1.amazonaws.com/allbookings

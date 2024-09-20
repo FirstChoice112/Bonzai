@@ -1,5 +1,5 @@
 const { docClient, ScanCommand } = require("../config/config.js");
-
+//Get all item in booking table
 const getBookings = async () => {
   try {
     const getbooking = new ScanCommand({

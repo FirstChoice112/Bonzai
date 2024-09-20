@@ -76,16 +76,14 @@ resources:
         AttributeDefinitions:
           - AttributeName: roomId
             AttributeType: S
-          - AttributeName: availableStatus # Change from isAvailable (BOOL) to String (S)
+          - AttributeName: availableStatus
             AttributeType: S
         KeySchema:
           - AttributeName: roomId
             KeyType: HASH
-          # - AttributeName: availableStatus # Change this key to match the new String attribute
-          #   KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
         GlobalSecondaryIndexes:
-          - IndexName: availableStatusIndex # New GSI to track room availability
+          - IndexName: availableStatusIndex
             KeySchema:
               - AttributeName: availableStatus
                 KeyType: HASH

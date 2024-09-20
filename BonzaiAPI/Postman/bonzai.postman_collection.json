@@ -1,0 +1,63 @@
+{
+	"info": {
+		"_postman_id": "b1de2567-16d8-4d27-8ff1-46b6a7713cb4",
+		"name": "bonzai",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "33893148"
+	},
+	"item": [
+		{
+			"name": "bookroom",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"Mo Doe\",\r\n  \"email\": \"mo.doe@example.com\",\r\n  \"inDate\": \"2024-09-20\",\r\n  \"outDate\": \"2024-09-21\",\r\n  \"totalGuests\": 3,\r\n  \"rooms\": [\r\n  \"double\",\r\n  \"single\"\r\n  ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://2l9zrqz682.execute-api.eu-north-1.amazonaws.com/bookroom"
+			},
+			"response": []
+		},
+		{
+			"name": "updatebooking",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"roomId\":\"2\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://2l9zrqz682.execute-api.eu-north-1.amazonaws.com/Update"
+			},
+			"response": []
+		},
+		{
+			"name": "getAllBookings",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "deleteBooking",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": "https://2l9zrqz682.execute-api.eu-north-1.amazonaws.com/deletebooking/{bookingId}"
+			},
+			"response": []
+		}
+	]
+}
